@@ -256,12 +256,15 @@ namespace UnityAndroidAnalyzer
                 var addr = Analyzer.DetectAddressables(zipArchives) ? "yes" : "no";
                 var nsList = Analyzer.DetectMajorNamespaces(metadataBytes);
 
+                var havok = Analyzer.DetectHavokPhysics(scriptingAssembliesJson, runtimeInitJson, metadataBytes);
+
                 Console.WriteLine($"## {title}");
                 Console.WriteLine();
                 Console.WriteLine($"- **Unity Version:** `{unityVersion}`");
                 Console.WriteLine($"- **Render Pipeline:** `{rp}`");
                 Console.WriteLine($"- **Entities Used:** `{entities}`");
                 Console.WriteLine($"- **Addressables Used:** `{addr}`");
+                Console.WriteLine($"- **Havok Used:** `{havok}`");
                 Console.WriteLine();
                 Console.WriteLine("### Major Namespaces (top 20)");
                 Console.WriteLine();

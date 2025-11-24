@@ -11,6 +11,48 @@ public class Analyzer
         @"((20[0-9]{2}|[5-9][0-9]{3})\.[0-9]+\.[0-9]+[fpab][0-9]*)";
     private const string MetadataPath = "assets/bin/Data/Managed/Metadata/global-metadata.dat";
     
+    
+    public static string DetectHavokPhysics(
+        string scriptingAssembliesJson,
+        string runtimeInitJson,
+        byte[]? metadataBytes)
+    {
+        bool hasHavokAssembly = false;
+        if (!string.IsNullOrEmpty(scriptingAssembliesJson))
+        {
+            var s = scriptingAssembliesJson;
+            if (s.IndexOf("Havok.Physics", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                s.IndexOf("com.havok.physics", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                hasHavokAssembly = true;
+            }
+        }
+
+        bool hasHavokRuntime = false;
+        if (!string.IsNullOrEmpty(runtimeInitJson))
+        {
+            var s = runtimeInitJson;
+            if (s.IndexOf("Havok.Physics", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                hasHavokRuntime = true;
+            }
+        }
+
+        bool hasHavokInMetadata = false;
+        if (metadataBytes != null && metadataBytes.Length > 0)
+        {
+            var s = ExtractPrintableAscii(metadataBytes);
+            if (s.IndexOf("Havok.Physics", StringComparison.OrdinalIgnoreCase) >= 0)
+                hasHavokInMetadata = true;
+        }
+
+        // 최소 한 군데 이상 등장하면 사용한다고 본다
+        if (hasHavokAssembly || hasHavokRuntime || hasHavokInMetadata)
+            return "yes";
+
+        return "no";
+    }
+    
     public static string DetectRenderPipeline(byte[]? metadataBytes)
     {
         if (metadataBytes == null || metadataBytes.Length == 0)

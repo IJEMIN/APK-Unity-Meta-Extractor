@@ -428,7 +428,7 @@ namespace UnityAndroidAnalyzer
                 byte[]? metadataBytes = ExtractMetadataFromContainers(zipArchives);
                 string rp = DetectRenderPipeline(metadataBytes);
                 string entities = DetectEntities(metadataBytes);
-                string addr = DetectAddressables(zips) ? "yes" : "no";
+                string addr = DetectAddressables(zipArchives) ? "yes" : "no";
                 var nsList = DetectMajorNamespaces(metadataBytes);
 
                 Console.WriteLine($"## {title}");
@@ -564,11 +564,11 @@ namespace UnityAndroidAnalyzer
             return has ? "yes" : "no";
         }
 
-        static bool DetectAddressables(List<dynamic> zips)
+        static bool DetectAddressables(List<ZipArchive> zips)
         {
             foreach (var z in zips)
             {
-                foreach (var entry in z.Zip.Entries)
+                foreach (var entry in z.Entries)
                 {
                     var name = entry.FullName.Replace("\\", "/").ToLowerInvariant();
                     if (name.Contains("aa/") ||

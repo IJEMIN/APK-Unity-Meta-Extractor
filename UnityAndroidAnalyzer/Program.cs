@@ -266,7 +266,7 @@ namespace UnityAndroidAnalyzer
                 Console.WriteLine($"- **Addressables Used:** `{addr}`");
                 Console.WriteLine($"- **Havok Used:** `{havok}`");
                 Console.WriteLine();
-                Console.WriteLine("### Major Namespaces (top 20)");
+                Console.WriteLine("### Major Namespaces (top 30)");
                 Console.WriteLine();
 
                 if (nsList.Count == 0)

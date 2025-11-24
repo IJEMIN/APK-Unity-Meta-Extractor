@@ -266,7 +266,7 @@ public class Analyzer
             dict[key] = cnt + 1;
         }
 
-        foreach (var kv in dict.OrderByDescending(k => k.Value).Take(20))
+        foreach (var kv in dict.OrderByDescending(k => k.Value).Take(30))
             result.Add((kv.Key, kv.Value));
 
         return result;

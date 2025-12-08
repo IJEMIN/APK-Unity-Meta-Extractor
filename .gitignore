@@ -1,0 +1,79 @@
+############################
+# .NET / C# 일반
+############################
+bin/
+obj/
+out/
+*.user
+*.suo
+*.tmp
+*.tlog
+*.log
+*.bak
+*.cache
+
+# .NET generated
+*.dll
+*.exe
+*.pdb
+*.mdb
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+*.nuspec
+project.lock.json
+project.assets.json
+artifacts/
+
+# Publish output
+publish/
+*.deps.json
+*.runtimeconfig.json
+
+############################
+# JetBrains Rider / IntelliJ / ReSharper
+############################
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+resharper.log
+
+# Rider caches
+/.idea/
+/.idea/**/
+/.gradle/
+.idea/.idea/
+*.DotSettings.user
+*.DotSettings
+
+# Rider build artifacts
+/.fleet/
+.jetbrains/
+__JetBrains*
+*.sln.iml
+
+############################
+# Avalonia
+############################
+*.axaml.cs~    # temp files
+*.bak.axaml
+
+############################
+# macOS 환경 잡파일
+############################
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swl
+
+############################
+# System / Editor temp
+############################
+Thumbs.db
+desktop.ini
+*.orig

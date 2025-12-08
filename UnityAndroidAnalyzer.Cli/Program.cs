@@ -5,8 +5,9 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using UnityAndroidAnalyzer.Core;
 
-namespace UnityAndroidAnalyzer
+namespace UnityAndroidAnalyzer.Cli
 {
     partial class Program
     {
@@ -205,16 +206,6 @@ namespace UnityAndroidAnalyzer
         }
 
         // ======================================================
-        // ADB helper
-        // ======================================================
-
-        class PackageInfo
-        {
-            public string PackageName { get; set; } = "";
-            public string? Label { get; set; }
-        }
-
-        // ======================================================
         // Static analysis core
         // ======================================================
 
@@ -302,65 +293,13 @@ namespace UnityAndroidAnalyzer
         {
             try
             {
-                var (exit, _, _) = RunProcess(command, "--version", true, 2000);
+                var (exit, _, _) = SystemHelper.RunProcess(command, "--version", true, 2000);
                 return exit == 0 || exit == 1; // some cmds return 1 for --version
             }
             catch
             {
                 return false;
             }
-        }
-
-        static (int ExitCode, string Stdout, string Stderr) RunProcess(
-            string fileName,
-            string arguments,
-            bool captureOutput,
-            int timeoutMs = 60000)
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = false,
-                RedirectStandardOutput = captureOutput,
-                RedirectStandardError = captureOutput,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
-
-            using var proc = new Process { StartInfo = psi };
-            var stdout = new StringBuilder();
-            var stderr = new StringBuilder();
-
-            if (captureOutput)
-            {
-                proc.OutputDataReceived += (_, e) =>
-                {
-                    if (e.Data != null)
-                        stdout.AppendLine(e.Data);
-                };
-                proc.ErrorDataReceived += (_, e) =>
-                {
-                    if (e.Data != null)
-                        stderr.AppendLine(e.Data);
-                };
-            }
-
-            proc.Start();
-            if (captureOutput)
-            {
-                proc.BeginOutputReadLine();
-                proc.BeginErrorReadLine();
-            }
-
-            if (!proc.WaitForExit(timeoutMs))
-            {
-                try { proc.Kill(true); } catch { /* ignore */ }
-                throw new TimeoutException($"{fileName} {arguments} timed out.");
-            }
-
-            return (proc.ExitCode, stdout.ToString(), stderr.ToString());
         }
 
         static string SanitizeFolderName(string name)

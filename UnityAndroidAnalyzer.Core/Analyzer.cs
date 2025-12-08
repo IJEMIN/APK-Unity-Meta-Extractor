@@ -2,7 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace UnityAndroidAnalyzer;
+namespace UnityAndroidAnalyzer.Core;
 
 public class Analyzer
 {

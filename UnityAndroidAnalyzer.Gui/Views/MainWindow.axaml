@@ -3,18 +3,41 @@
         xmlns:vm="using:UnityAndroidAnalyzer.Gui.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
         x:Class="UnityAndroidAnalyzer.Gui.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="UnityAndroidAnalyzer.Gui">
+        Title="Unity Android Analyzer">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+    <!-- 디자인 타임용 DataContext는, 생성자가 파라미터를 요구하므로 일단 제거 -->
+    <!--<Design.DataContext>
         <vm:MainWindowViewModel/>
-    </Design.DataContext>
+    </Design.DataContext>-->
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <Grid ColumnDefinitions="2*,3*" Margin="8">
+        <!-- 왼쪽: APK 선택 / 분석 -->
+        <StackPanel Grid.Column="0" Spacing="8">
+            <TextBlock Text="Local APK analysis" FontWeight="Bold" FontSize="16" />
 
+            <TextBox Text="{Binding ApkPath}"
+                     Watermark="Selected APK path"
+                     IsReadOnly="True" />
+
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <Button Content="Select APK" Click="SelectApk_OnClick" />
+                <Button Content="Analyze"    Click="Analyze_OnClick" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- 오른쪽: Markdown 출력 -->
+        <Border Grid.Column="1" Margin="8,0,0,0" BorderBrush="Gray" BorderThickness="1">
+            <ScrollViewer>
+                <TextBox Text="{Binding Markdown}"
+                         AcceptsReturn="True"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         FontFamily="Consolas, Menlo, monospace" />
+            </ScrollViewer>
+        </Border>
+    </Grid>
 </Window>

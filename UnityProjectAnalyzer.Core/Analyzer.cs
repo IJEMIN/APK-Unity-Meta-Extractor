@@ -48,28 +48,51 @@ public class Analyzer
         return false;
     }
     
-    public static string DetectRenderPipeline(byte[]? metadataBytes)
+    public static string DetectRenderPipeline(byte[]? metadataBytes, string scriptingAssembliesJson = "", IEnumerable<string>? fileNames = null)
     {
-        if (metadataBytes == null || metadataBytes.Length == 0)
-            return "Unknown";
+        var s = "";
+        if (metadataBytes != null && metadataBytes.Length > 0)
+        {
+            s = ExtractPrintableAscii(metadataBytes).ToLowerInvariant();
+        }
+        
+        if (!string.IsNullOrEmpty(scriptingAssembliesJson))
+        {
+            s += "\n" + scriptingAssembliesJson.ToLowerInvariant();
+        }
+        
+        if (fileNames != null)
+        {
+            foreach (var f in fileNames)
+            {
+                s += "\n" + Path.GetFileName(f).ToLowerInvariant();
+            }
+        }
 
-        var s = ExtractPrintableAscii(metadataBytes).ToLowerInvariant();
+        if (string.IsNullOrEmpty(s))
+            return "Unknown";
 
         if (s.Contains("com.unity.render-pipelines.universal") || // package
             s.Contains("unityengine.rendering.universal") || // namespace
             s.Contains("universalrenderpipeline") ||
             s.Contains("forwardrenderer") ||
-            s.Contains("renderer2d"))
+            s.Contains("renderer2d") ||
+            s.Contains("unity.renderpipelines.universal.runtime"))
             return "URP";
 
         if (s.Contains("com.unity.render-pipelines.high-definition") || // package
             s.Contains("unityengine.rendering.highdefinition") || // namespace
-            s.Contains("hdrenderpipeline"))
+            s.Contains("hdrenderpipeline") ||
+            s.Contains("unity.renderpipelines.highdefinition.runtime"))
             return "HDRP";
         
         // Scriptable Render Pipeline (SRP) without URP/HDRP 
-        if (s.Contains("com.unity.render-pipelines.core")) return "SRP";
+        if (s.Contains("com.unity.render-pipelines.core") || 
+            s.Contains("unity.renderpipelines.core.runtime")) 
+            return "SRP";
 
+        // If we have metadata or scripting assemblies, and none of the above matched, it's likely Built-in
+        // But if we have absolutely nothing, it should remain Unknown
         return "Built-in";
     }
 

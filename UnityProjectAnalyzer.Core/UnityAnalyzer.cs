@@ -120,7 +120,7 @@ public class UnityAnalyzer : IUnityAnalyzer
         // 유니티 데이터 분석 수행
         var parsingData = Analyzer.AnalyzeDirectoryUnity3D(rootPath);
 
-        var rp = Analyzer.DetectRenderPipeline(metadataBytes);
+        var rp = Analyzer.DetectRenderPipeline(metadataBytes, scriptingAssembliesJson, allFiles);
         var entities = Analyzer.DetectEntities(scriptingAssembliesJson, runtimeInitJson, parsingData);
         var ngui = Analyzer.DetectNgui(parsingData);
         var addr = Analyzer.DetectAddressablesFromDirectory(rootPath);
@@ -156,7 +156,8 @@ public class UnityAnalyzer : IUnityAnalyzer
         // 유니티 데이터 분석 수행 (2단계 분석 전략)
         var parsingData = Analyzer.AnalyzeDataUnity3D(zipArchives);
 
-        var rp = Analyzer.DetectRenderPipeline(metadataBytes);
+        var allEntryNames = zipArchives.SelectMany(z => z.Entries.Select(e => e.FullName));
+        var rp = Analyzer.DetectRenderPipeline(metadataBytes, scriptingAssembliesJson, allEntryNames);
         var entities = Analyzer.DetectEntities(scriptingAssembliesJson, runtimeInitJson, parsingData);
         var ngui = Analyzer.DetectNgui(parsingData);
         var addr = Analyzer.DetectAddressables(zipArchives);

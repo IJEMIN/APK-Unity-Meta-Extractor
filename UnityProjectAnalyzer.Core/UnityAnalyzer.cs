@@ -8,10 +8,15 @@ public class UnityAnalyzer : IUnityAnalyzer
     public string DownloadRootPath { get; set; } = 
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "UnityProjectAnalyzer");
 
-    public async Task<AnalysisResult> AnalyzeLocalAsync(string apkPath, IEnumerable<string> obbPaths)
+    public async Task<AnalysisResult> AnalyzeLocalAsync(string path, IEnumerable<string> extraPaths)
     {
-        var containerPaths = new List<string> { apkPath };
-        containerPaths.AddRange(obbPaths);
+        if (Directory.Exists(path))
+        {
+            return await Task.Run(() => PerformDirectoryAnalysis(path));
+        }
+
+        var containerPaths = new List<string> { path };
+        containerPaths.AddRange(extraPaths);
 
         var zipArchives = new List<ZipArchive>();
         try
@@ -29,7 +34,7 @@ public class UnityAnalyzer : IUnityAnalyzer
                 throw new FileNotFoundException("No valid APK/OBB containers found.");
             }
 
-            return await Task.Run(() => PerformAnalysis(Path.GetFileName(apkPath), zipArchives));
+            return await Task.Run(() => PerformAnalysis(Path.GetFileName(path), zipArchives));
         }
         finally
         {
@@ -91,6 +96,54 @@ public class UnityAnalyzer : IUnityAnalyzer
         finally
         {
         }
+    }
+
+    private AnalysisResult PerformDirectoryAnalysis(string rootPath)
+    {
+        // For directories (.app or Windows folder), we search for files recursively
+        var allFiles = Directory.GetFiles(rootPath, "*", SearchOption.AllDirectories);
+        
+        var scriptingAssembliesJson = "";
+        var scriptingPath = allFiles.FirstOrDefault(f => f.EndsWith("ScriptingAssemblies.json", StringComparison.OrdinalIgnoreCase));
+        if (scriptingPath != null) scriptingAssembliesJson = File.ReadAllText(scriptingPath);
+        
+        var runtimeInitJson = "";
+        var runtimeInitPath = allFiles.FirstOrDefault(f => f.EndsWith("RuntimeInitializeOnLoads.json", StringComparison.OrdinalIgnoreCase));
+        if (runtimeInitPath != null) runtimeInitJson = File.ReadAllText(runtimeInitPath);
+        
+        var unityVersion = Analyzer.DetectUnityVersionFromDirectory(rootPath) ?? "Unknown";
+        
+        byte[]? metadataBytes = null;
+        var metadataFile = allFiles.FirstOrDefault(f => f.EndsWith("global-metadata.dat", StringComparison.OrdinalIgnoreCase));
+        if (metadataFile != null) metadataBytes = File.ReadAllBytes(metadataFile);
+
+        // 유니티 데이터 분석 수행
+        var parsingData = Analyzer.AnalyzeDirectoryUnity3D(rootPath);
+
+        var rp = Analyzer.DetectRenderPipeline(metadataBytes);
+        var entities = Analyzer.DetectEntities(scriptingAssembliesJson, runtimeInitJson, parsingData);
+        var ngui = Analyzer.DetectNgui(parsingData);
+        var addr = Analyzer.DetectAddressablesFromDirectory(rootPath);
+        var insights = Analyzer.GetMajorScriptInsights(parsingData);
+        var havok = Analyzer.DetectHavokPhysics(scriptingAssembliesJson, runtimeInitJson, metadataBytes);
+        var entPhys = Analyzer.DetectEntitiesPhysics(scriptingAssembliesJson);
+        var uitk = Analyzer.DetectUiToolkitFromDirectory(rootPath, parsingData);
+
+        return new AnalysisResult
+        {
+            Title = Path.GetFileName(rootPath),
+            UnityVersion = unityVersion,
+            RenderPipeline = rp,
+            EntitiesUsed = entities,
+            EntitiesPhysicsUsed = entPhys,
+            NguiUsed = ngui,
+            AddressablesUsed = addr,
+            HavokUsed = havok,
+            UiToolkitUsed = uitk,
+            MajorScriptInsights = insights,
+            MetadataPath = metadataFile,
+            ScriptingAssembliesPath = scriptingPath
+        };
     }
 
     private AnalysisResult PerformAnalysis(string title, List<ZipArchive> zipArchives)

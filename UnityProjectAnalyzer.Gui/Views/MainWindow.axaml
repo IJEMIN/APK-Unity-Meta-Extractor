@@ -25,30 +25,61 @@
                 <StackPanel Spacing="16">
                     <!-- Local Analysis -->
                     <StackPanel Spacing="8">
-                        <TextBlock Text="Local APK analysis" FontWeight="Bold" FontSize="16" />
+                        <TextBlock Text="Analyze Unity Builds" FontWeight="Bold" FontSize="16" />
                         <TextBox Text="{Binding ApkPath}"
-                                 Watermark="Selected APK path"
+                                 Watermark="Selected Path"
                                  IsReadOnly="True" />
                         <StackPanel Orientation="Horizontal" Spacing="4">
-                            <Button Content="Select APK" Click="SelectApk_OnClick" />
-                            <Button Content="Analyze"    Click="Analyze_OnClick" />
+                            <!-- Mac: Integrated button -->
+                            <Button Content="Select File/Folder" IsVisible="{Binding IsMac}">
+                                <Button.Flyout>
+                                    <MenuFlyout Placement="Bottom">
+                                        <MenuItem Header="Select File" Click="SelectFile_OnClick" />
+                                        <MenuItem Header="Select Folder" Click="SelectFolder_OnClick" />
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
+
+                            <!-- Windows: Two separate buttons -->
+                            <Button Content="Select File" Click="SelectFile_OnClick" IsVisible="{Binding IsWindows}" />
+                            <Button Content="Select Folder" Click="SelectFolder_OnClick" IsVisible="{Binding IsWindows}" />
+                            
+                            <Button Content="Analyze" Click="Analyze_OnClick" />
                         </StackPanel>
+                        <TextBlock Text="Note: For Android APK and Mac .app, select the file. For Windows, select the game installation folder." 
+                                   FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
                     </StackPanel>
 
                     <Separator />
 
                     <!-- ADB Connection -->
                     <StackPanel Spacing="8">
-                        <TextBlock Text="ADB Connection" FontWeight="Bold" FontSize="16" />
+                        <TextBlock Text="Analyze uADB Connection" FontWeight="Bold" FontSize="16" />
+                        
+                        <Border Background="Gold" CornerRadius="4" Padding="8" IsVisible="{Binding IsAdbMissing}">
+                            <TextBlock Text="ADB is not installed or not found in PATH. ADB Connection is unavailable." 
+                                       Foreground="Black" FontWeight="Bold" TextWrapping="Wrap" />
+                        </Border>
+
                         <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="Currently Connect Device :" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding CurrentlyConnectedDevice}" FontWeight="Bold" VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="Direction Connection" VerticalAlignment="Center" Width="120" />
                             <TextBox Text="{Binding AdbAddress}" Watermark="IP:Port (e.g. 127.0.0.1:5555)" Width="200"/>
                             <Button Content="Connect" Command="{Binding ConnectCommand}" />
                         </StackPanel>
+                        
                         <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="Detected devices" VerticalAlignment="Center" Width="120" />
                             <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" Width="200" PlaceholderText="Select Device" />
+                            <Button Content="Connect" Command="{Binding ConnectSelectedCommand}" />
                             <Button Content="Refresh" Command="{Binding RefreshDevicesCommand}" />
                         </StackPanel>
-                        <TextBlock Text="Download Path" FontWeight="Bold" Margin="0,4,0,0"/>
+
+                        <TextBlock Text="APK Download Path" FontWeight="Bold" Margin="0,4,0,0"/>
                         <Grid ColumnDefinitions="*, Auto">
                             <TextBox Text="{Binding DownloadRootPath}" IsReadOnly="True" Margin="0,0,4,0" />
                             <Button Grid.Column="1" Content="..." Click="ChangeDownloadPath_OnClick" />

@@ -23,6 +23,6 @@ public class AnalysisResult
 public interface IUnityAnalyzer
 {
     string DownloadRootPath { get; set; }
-    Task<AnalysisResult> AnalyzeLocalAsync(string apkPath, IEnumerable<string> obbPaths);
+    Task<AnalysisResult> AnalyzeLocalAsync(string path, IEnumerable<string> extraPaths);
     Task<AnalysisResult> AnalyzeDeviceAsync(string deviceSerial, string packageName);
 }

@@ -16,6 +16,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly AdbHelper _adb = new();
 
     [ObservableProperty]
+    private string? currentlyConnectedDevice;
+
+    [ObservableProperty]
     private string? apkPath;
     
     [ObservableProperty]
@@ -40,6 +43,17 @@ public partial class MainWindowViewModel : ViewModelBase
     private PackageInfo? selectedPackage;
 
     [ObservableProperty]
+    private bool isAdbInstalled;
+
+    public bool IsAdbMissing => !IsAdbInstalled;
+
+    [ObservableProperty]
+    private bool isMac;
+
+    [ObservableProperty]
+    private bool isWindows;
+
+    [ObservableProperty]
     private string downloadRootPath = "";
 
     // 분석 결과 필드들
@@ -60,9 +74,14 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _analyzer = analyzer;
         downloadRootPath = _analyzer.DownloadRootPath;
+        isAdbInstalled = _adb.IsAdbInstalled();
+        
+        isMac = OperatingSystem.IsMacOS();
+        isWindows = OperatingSystem.IsWindows();
 
         RefreshDevicesCommand = new AsyncRelayCommand(RefreshDevicesAsync);
         ConnectCommand = new AsyncRelayCommand(ConnectAsync);
+        ConnectSelectedCommand = new AsyncRelayCommand(ConnectSelectedDeviceAsync);
         SearchPackagesCommand = new AsyncRelayCommand(SearchPackagesAsync);
         AnalyzeDeviceCommand = new AsyncRelayCommand(AnalyzeDeviceAsync);
         OpenMetadataCommand = new RelayCommand(OpenMetadata);
@@ -72,6 +91,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IAsyncRelayCommand RefreshDevicesCommand { get; }
     public IAsyncRelayCommand ConnectCommand { get; }
+    public IAsyncRelayCommand ConnectSelectedCommand { get; }
     public IAsyncRelayCommand SearchPackagesCommand { get; }
     public IAsyncRelayCommand AnalyzeDeviceCommand { get; }
     public IRelayCommand OpenMetadataCommand { get; }
@@ -110,6 +130,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _currentMetadataPath = result.MetadataPath;
         _currentScriptingPath = result.ScriptingAssembliesPath;
+
+        // ADB를 통해 분석한 경우 packageName을 알 수 있지만, 로컬 파일인 경우 경로에서 제목을 가져옴
+        if (result.Title.EndsWith(".apk", StringComparison.OrdinalIgnoreCase))
+        {
+            StatusMessage = $"Analysis completed for {result.Title}";
+        }
     }
 
     public async Task RefreshDevicesAsync()
@@ -119,7 +145,13 @@ public partial class MainWindowViewModel : ViewModelBase
             var list = await Task.Run(() => _adb.GetDevices());
             Devices.Clear();
             foreach (var d in list) Devices.Add(d);
-            SelectedDevice = Devices.FirstOrDefault();
+            
+            // 만약 현재 선택된 기기가 리스트에 없다면 초기화
+            if (string.IsNullOrEmpty(SelectedDevice) || !Devices.Contains(SelectedDevice))
+            {
+                SelectedDevice = Devices.FirstOrDefault();
+            }
+            
             StatusMessage = $"Found {Devices.Count} devices.";
         }
         catch (Exception ex)
@@ -130,26 +162,36 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public async Task ConnectAsync()
     {
-        if (string.IsNullOrWhiteSpace(AdbAddress)) return;
-        StatusMessage = $"Connecting to {AdbAddress}...";
+        var target = AdbAddress;
+        if (string.IsNullOrWhiteSpace(target)) return;
+        
+        StatusMessage = $"Connecting to {target}...";
         try
         {
-            var success = await Task.Run(() => _adb.Connect(AdbAddress));
+            var success = await Task.Run(() => _adb.Connect(target));
             if (success)
             {
-                StatusMessage = $"Connected to {AdbAddress}";
+                StatusMessage = $"Connected to {target}";
                 await RefreshDevicesAsync();
-                SelectedDevice = AdbAddress;
+                SelectedDevice = target;
+                CurrentlyConnectedDevice = target;
             }
             else
             {
-                StatusMessage = $"Failed to connect to {AdbAddress}";
+                StatusMessage = $"Failed to connect to {target}";
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
         }
+    }
+
+    public async Task ConnectSelectedDeviceAsync()
+    {
+        if (string.IsNullOrEmpty(SelectedDevice)) return;
+        CurrentlyConnectedDevice = SelectedDevice;
+        StatusMessage = $"Device {SelectedDevice} selected as target.";
     }
 
     public async Task SearchPackagesAsync()
@@ -182,7 +224,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            StatusMessage = "Analyzing local APK...";
+            StatusMessage = "Analyzing Unity build...";
             var result = await _analyzer.AnalyzeLocalAsync(ApkPath, Array.Empty<string>());
             UpdateResult(result);
             StatusMessage = "Analysis complete.";

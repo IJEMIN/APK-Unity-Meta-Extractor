@@ -112,6 +112,68 @@ public class Analyzer
         return null;
     }
 
+    public static string? DetectUnityVersionFromDirectory(string rootPath)
+    {
+        var allFiles = Directory.GetFiles(rootPath, "*", SearchOption.AllDirectories);
+        
+        // 1) globalgamemanagers
+        var ggm = allFiles.FirstOrDefault(f => Path.GetFileName(f) == "globalgamemanagers");
+        if (ggm != null)
+        {
+            var v = FindVersionInFile(ggm);
+            if (!string.IsNullOrEmpty(v)) return v;
+        }
+
+        // 2) data.unity3d
+        var data3d = allFiles.FirstOrDefault(f => Path.GetFileName(f) == "data.unity3d");
+        if (data3d != null)
+        {
+            var v = FindVersionInFile(data3d);
+            if (!string.IsNullOrEmpty(v)) return v;
+        }
+
+        // 3) UnityPlayer.dll (Windows) or UnityPlayer (Mac) or UnityFramework (Mac)
+        var players = allFiles.Where(f => 
+            f.EndsWith("UnityPlayer.dll", StringComparison.OrdinalIgnoreCase) || 
+            f.EndsWith("UnityPlayer", StringComparison.OrdinalIgnoreCase) ||
+            f.EndsWith("UnityFramework", StringComparison.OrdinalIgnoreCase));
+        
+        foreach (var p in players)
+        {
+            var v = FindVersionInFile(p);
+            if (!string.IsNullOrEmpty(v)) return v;
+        }
+
+        // 4) fallback: metadata
+        var metadataFile = allFiles.FirstOrDefault(f => f.EndsWith("global-metadata.dat", StringComparison.OrdinalIgnoreCase));
+        if (metadataFile != null)
+        {
+            var bytes = File.ReadAllBytes(metadataFile);
+            var s = ExtractPrintableAscii(bytes);
+            var m = Regex.Match(s, VersionPattern);
+            if (m.Success) return m.Value;
+        }
+
+        return null;
+    }
+
+    private static string? FindVersionInFile(string filePath)
+    {
+        try
+        {
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            // Read only first 10MB to avoid large files impact
+            var length = Math.Min(fs.Length, 10 * 1024 * 1024);
+            var buffer = new byte[length];
+            fs.Read(buffer, 0, (int)length);
+            
+            var s = ExtractPrintableAscii(buffer);
+            var m = Regex.Match(s, VersionPattern);
+            return m.Success ? m.Value : null;
+        }
+        catch { return null; }
+    }
+
     public static string? DetectUnityVersionFromContainers(List<ZipArchive> zips)
     {
         // 1) globalgamemanagers
@@ -230,6 +292,23 @@ public class Analyzer
         }
         return false;
     }
+
+    public static bool DetectAddressablesFromDirectory(string rootPath)
+    {
+        var allFiles = Directory.GetFiles(rootPath, "*", SearchOption.AllDirectories);
+        foreach (var file in allFiles)
+        {
+            var name = file.Replace("\\", "/").ToLowerInvariant();
+            if (name.Contains("/aa/") ||
+                name.Contains("addressables") ||
+                Regex.IsMatch(Path.GetFileName(name), @"catalog.*\.json", RegexOptions.IgnoreCase) ||
+                Regex.IsMatch(Path.GetFileName(name), @"catalog.*\.hash", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
     
     public static string ExtractJsonTextFromContainers(List<ZipArchive> zips, string entryPath)
     {
@@ -326,6 +405,64 @@ public class Analyzer
         return UnityAssetsReader.ParsingData;
     }
 
+    public static UnityParsingData AnalyzeDirectoryUnity3D(string rootPath)
+    {
+        UnityAssetsReader.ClearCache();
+
+        // Pass 1: Collect MonoScripts
+        Console.WriteLine("[Analyzer] Pass 1 (Dir): Collecting MonoScripts...");
+        ProcessDirectoryAssets(rootPath, true);
+
+        // Pass 2: Analyze GameObjects
+        Console.WriteLine("[Analyzer] Pass 2 (Dir): Analyzing GameObjects...");
+        ProcessDirectoryAssets(rootPath, false);
+
+        return UnityAssetsReader.ParsingData;
+    }
+
+    private static void ProcessDirectoryAssets(string rootPath, bool scriptsOnly)
+    {
+        var allFiles = Directory.GetFiles(rootPath, "*", SearchOption.AllDirectories);
+        foreach (var file in allFiles)
+        {
+            var name = Path.GetFileName(file);
+            
+            // data.unity3d
+            if (name == "data.unity3d")
+            {
+                if (!scriptsOnly) Console.WriteLine("[Analyzer] Found data.unity3d in folder.");
+                using var fs = File.OpenRead(file);
+                var reader = new UnityFsReader(fs);
+                reader.Read(scriptsOnly);
+                continue;
+            }
+
+            // Other assets
+            if (name.EndsWith(".resS") || name.EndsWith(".resource") || name.EndsWith(".resourceBatch") || name.EndsWith(".bundle")) continue;
+
+            bool isPotentialAsset = name.EndsWith(".assets", StringComparison.OrdinalIgnoreCase) || 
+                                    name.EndsWith(".sharedassets", StringComparison.OrdinalIgnoreCase) || 
+                                    name.Contains("globalgamemanagers", StringComparison.OrdinalIgnoreCase) || 
+                                    name.Contains("level", StringComparison.OrdinalIgnoreCase) ||
+                                    name.Contains("unity_builtin_extra", StringComparison.OrdinalIgnoreCase) ||
+                                    name.Contains("unity default resources", StringComparison.OrdinalIgnoreCase);
+            
+            if (isPotentialAsset)
+            {
+                try
+                {
+                    using var fs = File.OpenRead(file);
+                    if (fs.Length > 20)
+                    {
+                        var reader = new UnityAssetsReader(fs);
+                        reader.Read(name, scriptsOnly);
+                    }
+                }
+                catch { }
+            }
+        }
+    }
+
     private static void ProcessAllAssets(List<ZipArchive> zips, bool scriptsOnly)
     {
         foreach (var zip in zips)
@@ -391,6 +528,25 @@ public class Analyzer
         {
             return true;
         }
+
+        return false;
+    }
+
+    public static bool DetectUiToolkitFromDirectory(string rootPath, UnityParsingData? parsingData)
+    {
+        // Directory based analysis mostly relies on parsingData which we already populated
+        if (parsingData != null && parsingData.SceneComponents.Any(c => c.Contains("UIDocument")))
+        {
+            return true;
+        }
+        
+        // Also check for .uxml files in directory
+        try
+        {
+            if (Directory.GetFiles(rootPath, "*.uxml", SearchOption.AllDirectories).Any())
+                return true;
+        }
+        catch { }
 
         return false;
     }

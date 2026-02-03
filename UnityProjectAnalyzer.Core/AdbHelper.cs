@@ -7,10 +7,34 @@ public class AdbHelper
 {
     public string? Serial { get; private set; }
     private string _adbPath = "adb";
+    private bool? _isInstalled;
 
     public AdbHelper()
     {
         _adbPath = FindAdb();
+    }
+
+    public bool IsAdbInstalled()
+    {
+        if (_isInstalled.HasValue) return _isInstalled.Value;
+
+        if (_adbPath != "adb" && File.Exists(_adbPath))
+        {
+            _isInstalled = true;
+            return true;
+        }
+
+        try
+        {
+            var (exit, _, _) = SystemHelper.RunProcess("adb", "version", true, 2000);
+            _isInstalled = exit == 0;
+        }
+        catch
+        {
+            _isInstalled = false;
+        }
+
+        return _isInstalled.Value;
     }
 
     private string FindAdb()

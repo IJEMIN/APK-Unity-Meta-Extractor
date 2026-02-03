@@ -95,20 +95,12 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         ResultUnityVersion = result.UnityVersion;
         ResultRenderPipeline = result.RenderPipeline;
-        ResultEntitiesUsed = result.EntitiesUsed;
-        ResultEntitiesPhysicsUsed = result.EntitiesPhysicsUsed;
-        ResultNguiUsed = result.NguiUsed;
-        ResultAddressablesUsed = result.AddressablesUsed;
-        ResultHavokUsed = result.HavokUsed;
-        
-        if (result.UiToolkitUsed.Contains("yes", StringComparison.OrdinalIgnoreCase))
-        {
-            ResultUiToolkitUsed = "Runtime UIToolkit Detected";
-        }
-        else
-        {
-            ResultUiToolkitUsed = result.UiToolkitUsed;
-        }
+        ResultEntitiesUsed = result.EntitiesUsed ? "Yes" : "No";
+        ResultEntitiesPhysicsUsed = result.EntitiesPhysicsUsed ? "Yes" : "No";
+        ResultNguiUsed = result.NguiUsed ? "Yes" : "No";
+        ResultAddressablesUsed = result.AddressablesUsed ? "Yes" : "No";
+        ResultHavokUsed = result.HavokUsed ? "Yes" : "No";
+        ResultUiToolkitUsed = result.UiToolkitUsed ? "Runtime UIToolkit Detected" : "No";
         
         ResultMajorScriptInsights.Clear();
         foreach (var insight in result.MajorScriptInsights)

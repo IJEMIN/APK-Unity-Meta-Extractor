@@ -105,8 +105,8 @@ public class UnityAnalyzer : IUnityAnalyzer
 
         var rp = Analyzer.DetectRenderPipeline(metadataBytes);
         var entities = Analyzer.DetectEntities(scriptingAssembliesJson, runtimeInitJson, parsingData);
-        var ngui = Analyzer.DetectNgui(parsingData) ? "Yes" : "No";
-        var addr = Analyzer.DetectAddressables(zipArchives) ? "Yes" : "No";
+        var ngui = Analyzer.DetectNgui(parsingData);
+        var addr = Analyzer.DetectAddressables(zipArchives);
         var insights = Analyzer.GetMajorScriptInsights(parsingData);
         var havok = Analyzer.DetectHavokPhysics(scriptingAssembliesJson, runtimeInitJson, metadataBytes);
         var entPhys = Analyzer.DetectEntitiesPhysics(scriptingAssembliesJson);

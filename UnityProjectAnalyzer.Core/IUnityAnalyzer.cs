@@ -7,12 +7,12 @@ public class AnalysisResult
     public string Title { get; set; } = "";
     public string UnityVersion { get; set; } = "";
     public string RenderPipeline { get; set; } = "";
-    public string EntitiesUsed { get; set; } = "";
-    public string NguiUsed { get; set; } = "";
-    public string AddressablesUsed { get; set; } = "";
-    public string HavokUsed { get; set; } = "";
-    public string EntitiesPhysicsUsed { get; set; } = "";
-    public string UiToolkitUsed { get; set; } = "";
+    public bool EntitiesUsed { get; set; }
+    public bool NguiUsed { get; set; }
+    public bool AddressablesUsed { get; set; }
+    public bool HavokUsed { get; set; }
+    public bool EntitiesPhysicsUsed { get; set; }
+    public bool UiToolkitUsed { get; set; }
     public List<(string Script, int Count)> MajorScriptInsights { get; set; } = new();
     
     // 파일 경로 저장을 위한 필드

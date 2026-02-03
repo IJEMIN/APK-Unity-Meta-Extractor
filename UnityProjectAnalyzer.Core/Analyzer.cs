@@ -13,7 +13,7 @@ public class Analyzer
     private const string MetadataPath = "assets/bin/Data/Managed/Metadata/global-metadata.dat";
     
     
-    public static string DetectHavokPhysics(
+    public static bool DetectHavokPhysics(
         string scriptingAssembliesJson,
         string runtimeInitJson,
         byte[]? metadataBytes)
@@ -25,32 +25,27 @@ public class Analyzer
             if (s.IndexOf("Havok.Physics", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 s.IndexOf("com.havok.physics", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                return "yes (Assembly)";
+                return true;
             }
         }
 
-        bool hasHavokRuntime = false;
         if (!string.IsNullOrEmpty(runtimeInitJson))
         {
             var s = runtimeInitJson;
             if (s.IndexOf("Havok.Physics", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                hasHavokRuntime = true;
+                return true;
             }
         }
 
-        bool hasHavokInMetadata = false;
         if (metadataBytes != null && metadataBytes.Length > 0)
         {
             var s = ExtractPrintableAscii(metadataBytes);
             if (s.IndexOf("Havok.Physics", StringComparison.OrdinalIgnoreCase) >= 0)
-                hasHavokInMetadata = true;
+                return true;
         }
 
-        if (hasHavokRuntime || hasHavokInMetadata)
-            return "yes";
-
-        return "no";
+        return false;
     }
     
     public static string DetectRenderPipeline(byte[]? metadataBytes)
@@ -167,42 +162,37 @@ public class Analyzer
         return m.Success ? m.Value : null;
     }
 
-    public static string DetectEntities(string scriptingAssembliesJson, string runtimeInitJson, UnityParsingData? parsingData)
+    public static bool DetectEntities(string scriptingAssembliesJson, string runtimeInitJson, UnityParsingData? parsingData)
     {
         // 1. Scene에서 SubScene 컴포넌트 사용 여부 확인 (가장 확실한 증거)
         if (parsingData != null && parsingData.SceneComponents.Contains("SubScene"))
         {
-            return "yes (Scene)";
+            return true;
         }
 
         // 기준 2: ScriptingAssemblies.json에 Entities 관련 어셈블리 있는지
-        bool hasEntitiesAssembly = false;
         if (!string.IsNullOrEmpty(scriptingAssembliesJson))
         {
             var s = scriptingAssembliesJson;
             if (s.IndexOf("Unity.Entities", StringComparison.OrdinalIgnoreCase) >= 0
                 || s.IndexOf("Unity.Entities.Hybrid", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                hasEntitiesAssembly = true;
+                return true;
             }
         }
 
         // 기준 3: RuntimeInitializeOnLoads.json에 Entities 관련 타입/어셈블리 초기화 항목이 있는지
-        bool hasEntitiesRuntime = false;
         if (!string.IsNullOrEmpty(runtimeInitJson))
         {
             var s = runtimeInitJson;
             if (s.IndexOf("Unity.Entities", StringComparison.OrdinalIgnoreCase) >= 0
                 || s.IndexOf("Unity.Entities.Hybrid", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                hasEntitiesRuntime = true;
+                return true;
             }
         }
         
-        if (hasEntitiesAssembly || hasEntitiesRuntime)
-            return "yes";
-        
-        return "no";
+        return false;
     }
 
     public static bool DetectNgui(UnityParsingData? parsingData)
@@ -394,24 +384,24 @@ public class Analyzer
         }
     }
 
-    public static string DetectUiToolkit(List<ZipArchive> zips, UnityParsingData? parsingData)
+    public static bool DetectUiToolkit(List<ZipArchive> zips, UnityParsingData? parsingData)
     {
         // 1. Scene에서 UIDocument 컴포넌트 사용 여부 확인 (가장 확실한 증거)
         if (parsingData != null && parsingData.SceneComponents.Any(c => c.Contains("UIDocument")))
         {
-            return "yes (Scene)";
+            return true;
         }
 
-        return "no";
+        return false;
     }
 
-    public static string DetectEntitiesPhysics(string scriptingAssembliesJson)
+    public static bool DetectEntitiesPhysics(string scriptingAssembliesJson)
     {
         if (!string.IsNullOrEmpty(scriptingAssembliesJson))
         {
             if (scriptingAssembliesJson.Contains("Unity.Physics", StringComparison.OrdinalIgnoreCase))
-                return "yes";
+                return true;
         }
-        return "no";
+        return false;
     }
 }
